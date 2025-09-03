@@ -1,0 +1,662 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Alertas -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show mb-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2 fs-5"></i>
+                        <span class="fw-medium">{{ message }}</span>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="fas fa-tachometer-alt me-2"></i> Dashboard de Administración</h2>
+        <span class="badge bg-primary rounded-pill fs-6">Actualizado: {{ ultima_fecha }}</span>
+    </div>
+
+    <!-- Tarjetas Resumen Mejoradas -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card bg-primary text-white shadow-sm border-0">
+                <div class="card-body py-4 text-center">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Total Usuarios</h6>
+                            <h2 class="fw-bold mb-0">{{ total_usuarios }}</h2>
+                        </div>
+                        <div class="flex-shrink-0 ms-3">
+                            <i class="fas fa-users fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-success text-white shadow-sm border-0">
+                <div class="card-body py-4 text-center">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Total Actividades</h6>
+                            <h2 class="fw-bold mb-0">{{ total_actividades }}</h2>
+                        </div>
+                        <div class="flex-shrink-0 ms-3">
+                            <i class="fas fa-tasks fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-info text-white shadow-sm border-0">
+                <div class="card-body py-4 text-center">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Operarios Activos</h6>
+                            <h2 class="fw-bold mb-0">{{ usuarios|selectattr('rol', 'equalto', 'Operario')|list|length }}</h2>
+                        </div>
+                        <div class="flex-shrink-0 ms-3">
+                            <i class="fas fa-user-gear fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance de Actividades Mejorado -->
+    <div class="card shadow-sm border-0 rounded-3 mb-4">
+        <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center py-3">
+            <span class="fw-semibold"><i class="fas fa-chart-line me-2"></i>Balance de Actividades</span>
+            <div>
+                <button class="btn btn-light btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalFiltroFechas">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaActividad">
+                    <i class="fas fa-plus me-1"></i> Nueva Actividad
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="rango-fechas-info" class="alert alert-info py-2 mb-3 d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <span>Mostrando actividades desde <strong>{{ fecha_inicio }}</strong> hasta <strong>{{ fecha_fin }}</strong></span>
+            </div>
+            
+            <!-- Contenedor con tamaño limitado -->
+            <div class="grafica-contenedor" style="max-height: 400px;">
+                <canvas id="graficaActividades"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usuarios por Rol Mejorado -->
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-gradient-success text-white d-flex justify-content-between align-items-center py-3">
+            <span class="fw-semibold"><i class="fas fa-users me-2"></i>Distribución de Usuarios</span>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                <i class="fas fa-user-plus me-1"></i> Nuevo Usuario
+            </button>
+        </div>
+        <div class="card-body">
+            <!-- Contenedor con tamaño limitado -->
+            <div class="grafica-contenedor" style="max-height: 300px;">
+                <canvas id="graficaUsuarios"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Filtro de Fechas Mejorado -->
+<div class="modal fade" id="modalFiltroFechas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-filter me-2"></i>Filtrar por Fechas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="GET" action="{{ url_for('admin.dashboard_admin') }}" class="modal-content">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Fecha Inicio</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar-day text-muted"></i></span>
+                            <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Fecha Fin</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar-day text-muted"></i></span>
+                            <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-check me-2"></i> Aplicar Filtro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Actividad Mejorado -->
+<div class="modal fade" id="modalNuevaActividad" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-plus-circle me-2"></i>Nueva Actividad</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.crear_actividad') }}" class="modal-content" autocomplete="off">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                                <input type="date" name="fecha" class="form-control" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Turno <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-clock text-muted"></i></span>
+                                <select name="turno" class="form-select" required>
+                                    <option value="Mañana">Mañana</option>
+                                    <option value="Tarde">Tarde</option>
+                                    <option value="Noche">Noche</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Hora Inicio <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-play text-muted"></i></span>
+                                <input type="time" name="hora_inicio" class="form-control" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Hora Final <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-stop text-muted"></i></span>
+                                <input type="time" name="hora_final" class="form-control" required autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Código Actividad <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-hashtag text-muted"></i></span>
+                                <input type="text" name="codigo_actividad" class="form-control" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Operario <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                                <select name="usuario_id" class="form-select" required>
+                                    <option value="">Seleccionar operario</option>
+                                    {% for user in usuarios if user.rol == 'Operario' %}
+                                        <option value="{{ user.id }}">{{ user.nombre_completo }} - {{ user.rol }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Descripción</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-align-left text-muted"></i></span>
+                                <input type="text" name="descripcion_actividad" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Código Equipo</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-laptop-code text-muted"></i></span>
+                                <input type="text" name="codigo_equipo" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Orden Producción</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-file-alt text-muted"></i></span>
+                                <input type="text" name="orden_produccion" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Referencia Producto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-barcode text-muted"></i></span>
+                                <input type="text" name="referencia_producto" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Cantidad Trabajada</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-calculator text-muted"></i></span>
+                                <input type="number" name="cantidad_trabajada" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Observaciones</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-sticky-note text-muted"></i></span>
+                            <textarea name="observaciones" class="form-control" rows="3" autocomplete="off"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-save me-2"></i> Crear Actividad
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario Mejorado -->
+<div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-success text-white py-3">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-user-plus me-2"></i>Nuevo Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.nuevo_usuario') }}" class="modal-content" autocomplete="off">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" name="nombre_completo" class="form-control" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Documento <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-id-card text-muted"></i></span>
+                            <input type="text" name="documento" class="form-control" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Correo Electrónico <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-envelope text-muted"></i></span>
+                            <input type="email" name="correo" class="form-control" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" name="contraseña" class="form-control" required autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rol <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user-tag text-muted"></i></span>
+                            <select name="rol" class="form-select" required>
+                                <option value="">Seleccionar rol</option>
+                                <option value="Admin">Administrador</option>
+                                <option value="Analista">Analista</option>
+                                <option value="Operario">Operario</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="fas fa-save me-2"></i> Crear Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+    
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important;
+    }
+    
+    .stat-card {
+        border-left: 4px solid rgba(255, 255, 255, 0.5) !important;
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .card {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .grafica-contenedor {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    #graficaActividades,
+    #graficaUsuarios {
+        width: 100% !important;
+        height: auto !important;
+    }
+    
+    .modal-content {
+        border-radius: 1rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        border-radius: 1rem 1rem 0 0;
+        padding: 1.5rem;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        border-radius: 0 0 1rem 1rem;
+        padding: 1.5rem;
+    }
+    
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+        border-right: none;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 0 0.5rem 0.5rem 0;
+        border: 1px solid #d1d3e2;
+        padding: 0.75rem 1rem;
+    }
+    
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Obtener datos desde el backend
+const fechasLabels = {{ fechas_labels | tojson }};
+const actividadesData = {{ actividades_data | tojson }};
+const rolesData = {{ roles_conteo | tojson }};
+
+// Verificar datos en consola para depuración
+console.log("Datos para gráficas:", {fechasLabels, actividadesData, rolesData});
+
+// Función para limitar datos si hay demasiados puntos
+function limitarDatos(labels, data, maxPuntos = 15) {
+    if (labels.length <= maxPuntos) {
+        return { labels, data };
+    }
+    
+    // Tomar solo los últimos maxPuntos elementos
+    return {
+        labels: labels.slice(-maxPuntos),
+        data: data.slice(-maxPuntos)
+    };
+}
+
+// Aplicar límite a los datos de actividades si es necesario
+const actividadesLimitadas = limitarDatos(fechasLabels, actividadesData, 15);
+
+// Configuración de la gráfica de actividades con tamaño controlado
+const actividadesCtx = document.getElementById('graficaActividades');
+new Chart(actividadesCtx, {
+    type: 'line',
+    data: {
+        labels: actividadesLimitadas.labels,
+        datasets: [{
+            label: 'Número de Actividades',
+            data: actividadesLimitadas.data,
+            borderColor: 'rgba(78, 115, 223, 1)',
+            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+            pointBorderColor: '#fff',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+            pointHoverBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    color: '#5a5c69'
+                }
+            },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                titleColor: '#5a5c69',
+                bodyColor: '#858796',
+                borderColor: '#e3e6f0',
+                borderWidth: 1,
+                padding: 15,
+                boxPadding: 5
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(234, 236, 244, 0.8)'
+                },
+                ticks: {
+                    color: '#858796',
+                    font: {
+                        size: 12
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Cantidad de Actividades',
+                    color: '#5a5c69',
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(234, 236, 244, 0.8)'
+                },
+                ticks: {
+                    color: '#858796',
+                    font: {
+                        size: 12
+                    },
+                    maxRotation: 45,
+                    minRotation: 45
+                },
+                title: {
+                    display: true,
+                    text: 'Fechas',
+                    color: '#5a5c69',
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Configuración de la gráfica de usuarios por rol con tamaño controlado
+const usuariosCtx = document.getElementById('graficaUsuarios');
+new Chart(usuariosCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Administradores', 'Analistas', 'Operarios'],
+        datasets: [{
+            label: 'Usuarios por Rol',
+            data: rolesData,
+            backgroundColor: [
+                'rgba(220, 53, 69, 0.8)',
+                'rgba(23, 162, 184, 0.8)',
+                'rgba(108, 117, 125, 0.8)'
+            ],
+            borderColor: [
+                'rgba(220, 53, 69, 1)',
+                'rgba(23, 162, 184, 1)',
+                'rgba(108, 117, 125, 1)'
+            ],
+            borderWidth: 1,
+            borderRadius: 6,
+            hoverBackgroundColor: [
+                'rgba(220, 53, 69, 1)',
+                'rgba(23, 162, 184, 1)',
+                'rgba(108, 117, 125, 1)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    color: '#5a5c69'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                titleColor: '#5a5c69',
+                bodyColor: '#858796',
+                borderColor: '#e3e6f0',
+                borderWidth: 1,
+                padding: 15,
+                boxPadding: 5
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(234, 236, 244, 0.8)'
+                },
+                ticks: {
+                    color: '#858796',
+                    font: {
+                        size: 12
+                    },
+                    stepSize: 1
+                },
+                title: {
+                    display: true,
+                    text: 'Cantidad de Usuarios',
+                    color: '#5a5c69',
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(234, 236, 244, 0.8)'
+                },
+                ticks: {
+                    color: '#858796',
+                    font: {
+                        size: 12
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Roles de Usuario',
+                    color: '#5a5c69',
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

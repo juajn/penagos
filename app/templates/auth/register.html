@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% block title %}Registro - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5 bg-light">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-xl-5 col-lg-6 col-md-8">
+            <!-- Tarjeta de Registro -->
+            <div class="card shadow-lg border-0 rounded-3 overflow-hidden">
+                <!-- Header con gradiente -->
+                <div class="card-header bg-gradient-primary text-white text-center py-4">
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="register-icon bg-white rounded-circle p-3">
+                            <i class="fas fa-user-plus text-primary fs-2"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1">Crear Cuenta</h3>
+                    <p class="mb-0 opacity-75">Sistema de Gestión de Actividades</p>
+                </div>
+                
+                <div class="card-body p-5">
+                    <!-- Alertas -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-{{ 'exclamation-triangle' if category == 'danger' else 'check-circle' }} me-2"></i>
+                                    <span class="fw-medium">{{ message }}</span>
+                                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endwith %}
+
+                    <!-- Formulario de Registro -->
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-12 mb-4">
+                                <label for="nombre_completo" class="form-label fw-semibold text-dark">Nombre Completo <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="fas fa-user text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-2" id="nombre_completo" name="nombre_completo" 
+                                           placeholder="Ingrese su nombre completo" required autocomplete="name">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor ingrese su nombre completo
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label for="documento" class="form-label fw-semibold text-dark">Documento <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="fas fa-id-card text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-2" id="documento" name="documento" 
+                                           placeholder="Número de documento" required autocomplete="username">
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor ingrese su número de documento
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label for="rol" class="form-label fw-semibold text-dark">Rol <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="fas fa-user-tag text-muted"></i>
+                                    </span>
+                                    <select class="form-select border-start-0 ps-2" id="rol" name="rol" required>
+                                        <option value="">Seleccionar rol</option>
+                                        <option value="Operario">Operario</option>
+                                    </select>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor seleccione un rol
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="contraseña" class="form-label fw-semibold text-dark">Contraseña <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-2" id="contraseña" name="contraseña" 
+                                       placeholder="Crear una contraseña segura" required autocomplete="new-password">
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <small>Use al menos 8 caracteres con una combinación de letras, números y símbolos</small>
+                            </div>
+                            <div class="invalid-feedback">
+                                Por favor ingrese una contraseña válida
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="confirmar_contraseña" class="form-label fw-semibold text-dark">Confirmar Contraseña <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-2" id="confirmar_contraseña" name="confirmar_contraseña" 
+                                       placeholder="Confirmar su contraseña" required autocomplete="new-password">
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="toggleConfirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                Las contraseñas deben coincidir
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terminos" required>
+                            <label class="form-check-label small text-muted" for="terminos">
+                                Acepto los <a href="#" class="text-decoration-none">términos y condiciones</a> y la <a href="#" class="text-decoration-none">política de privacidad</a>
+                            </label>
+                            <div class="invalid-feedback">
+                                Debe aceptar los términos y condiciones
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg fw-semibold py-2">
+                                <i class="fas fa-user-plus me-2"></i>Crear Cuenta
+                            </button>
+                        </div>
+
+                        <div class="text-center pt-3 border-top">
+                            <p class="text-muted mb-0">¿Ya tienes una cuenta?
+                                <a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold text-decoration-none">
+                                    Inicia sesión aquí
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="text-center mt-4">
+                <p class="text-muted small">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Sus datos están protegidos y seguros
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Función para mostrar/ocultar contraseña
+        const togglePassword = document.querySelector('#togglePassword');
+        const toggleConfirmPassword = document.querySelector('#toggleConfirmPassword');
+        const password = document.querySelector('#contraseña');
+        const confirmPassword = document.querySelector('#confirmar_contraseña');
+        
+        togglePassword.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+        
+        toggleConfirmPassword.addEventListener('click', function() {
+            const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmPassword.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+
+        // Validación de contraseñas coincidentes
+        const form = document.querySelector('form');
+        const confirmarContraseña = document.getElementById('confirmar_contraseña');
+        
+        confirmarContraseña.addEventListener('input', function() {
+            if (this.value !== password.value) {
+                this.setCustomValidity('Las contraseñas no coinciden');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Validación de formulario
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+
+        // Validación en tiempo real
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+    
+    .min-vh-100 {
+        min-height: 100vh;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        border-radius: 1rem 1rem 0 0 !important;
+        padding: 2rem;
+    }
+    
+    .register-icon {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        border: none;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(78, 115, 223, 0.3);
+    }
+    
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d3e2;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+    }
+    
+    #togglePassword, #toggleConfirmPassword {
+        border-radius: 0 0.5rem 0.5rem 0;
+        border: 1px solid #d1d3e2;
+        border-left: none;
+    }
+    
+    .alert {
+        border-radius: 0.5rem;
+        border: none;
+    }
+    
+    a.text-primary {
+        transition: color 0.2s ease;
+    }
+    
+    a.text-primary:hover {
+        color: #224abe !important;
+    }
+    
+    .bg-light {
+        background-color: #f8f9fc !important;
+    }
+    
+    .form-check-input:checked {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+    
+    .is-valid {
+        border-color: #1cc88a !important;
+    }
+    
+    .is-invalid {
+        border-color: #e74a3b !important;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 2rem !important;
+        }
+        
+        .card-header {
+            padding: 1.5rem !important;
+        }
+    }
+</style>
+{% endblock %}

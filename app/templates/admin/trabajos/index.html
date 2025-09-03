@@ -1,0 +1,583 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Actividades{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Alertas -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show mb-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2 fs-5"></i>
+                        <span class="fw-medium">{{ message }}</span>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Sección de Carga de Archivos Mejorada -->
+    <div class="card shadow-lg mb-4 border-0">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-cloud-upload-alt me-3 fs-4"></i>
+                <h5 class="mb-0 fw-semibold">Carga de Documentos PDF</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="file-upload-container">
+                        <label for="pdf_file" class="form-label fw-semibold text-dark mb-3">Seleccionar archivo PDF para cargar</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control form-control-lg" id="pdf_file" name="pdf_file" accept=".pdf" required>
+                            <button class="btn btn-primary px-4" type="button" onclick="alert('Función de subir archivo en desarrollo')">
+                                <i class="fas fa-upload me-2"></i>Subir
+                            </button>
+                        </div>
+                        <div class="form-text text-muted mt-2">
+                            <i class="fas fa-info-circle me-1"></i>Formatos aceptados: PDF (Tamaño máximo: 10MB)
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="upload-info bg-light rounded p-3 text-center">
+                        <i class="fas fa-file-pdf text-primary mb-2 fs-1"></i>
+                        <p class="mb-0 text-muted fw-medium">Suba documentos relacionados con las actividades</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros con diseño mejorado -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-light py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-sliders-h me-2 text-primary"></i>Filtros de Búsqueda</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.actividades') }}" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="texto" class="form-label fw-semibold">Texto de búsqueda</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control" id="texto" name="texto" value="{{ filtros.texto }}" 
+                                   placeholder="Código, descripción..." autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="turno" class="form-label fw-semibold">Turno</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-clock text-muted"></i></span>
+                            <select class="form-select" id="turno" name="turno">
+                                <option value="">Todos</option>
+                                <option value="mañana" {% if filtros.turno == 'mañana' %}selected{% endif %}>Mañana</option>
+                                <option value="tarde" {% if filtros.turno == 'tarde' %}selected{% endif %}>Tarde</option>
+                                <option value="noche" {% if filtros.turno == 'noche' %}selected{% endif %}>Noche</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="usuario_id" class="form-label fw-semibold">Operario</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                            <select class="form-select" id="usuario_id" name="usuario_id">
+                                <option value="">Todos</option>
+                                {% for usuario in usuarios if usuario.rol == 'Operario' %}
+                                    <option value="{{ usuario.id }}" {% if filtros.usuario_id == usuario.id|string %}selected{% endif %}>
+                                        {{ usuario.nombre_completo }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="fecha_inicio" class="form-label fw-semibold">Fecha Inicio</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ filtros.fecha_inicio }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="fecha_fin" class="form-label fw-semibold">Fecha Fin</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ filtros.fecha_fin }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-1 d-flex align-items-end">
+                        <div class="d-grid gap-2 w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i> Filtrar
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('filterForm').reset(); document.getElementById('filterForm').submit();">
+                                <i class="fas fa-eraser me-1"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+ 
+    <!-- Tabla de actividades con diseño mejorado -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-list-check me-2 text-primary"></i>Registro de Actividades</h5>
+            <button class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#actividadModal">
+                <i class="fas fa-plus-circle me-2"></i> Nueva Actividad
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Fecha</th>
+                            <th>Turno</th>
+                            <th>Horario</th>
+                            <th>Código Actividad</th>
+                            <th>Descripción</th>
+                            <th>Operario</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for actividad in actividades %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-primary">{{ actividad.fecha }}</td>
+                            <td>
+                                <span class="badge rounded-pill bg-{{ 'success' if actividad.turno == 'mañana' else 'warning' if actividad.turno == 'tarde' else 'info' }}">
+                                    {{ actividad.turno }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-medium">{{ actividad.hora_inicio }}</span> - 
+                                <span class="fw-medium">{{ actividad.hora_final }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark rounded-pill px-3 py-2">
+                                    <i class="fas fa-hashtag me-1"></i>{{ actividad.codigo_actividad }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="d-inline-block text-truncate" style="max-width: 200px;" 
+                                      data-bs-toggle="tooltip" title="{{ actividad.descripcion_actividad|default('Sin descripción', true) }}">
+                                    {{ actividad.descripcion_actividad|default('Sin descripción', true)|truncate(30) }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center me-2">
+                                        <i class="fas fa-user text-primary"></i>
+                                    </div>
+                                    <span class="fw-medium">{{ actividad.usuario.nombre_completo }}</span>
+                                </div>
+                            </td>
+                            <td class="pe-4">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill edit-btn px-3" 
+                                            data-bs-toggle="modal" data-bs-target="#actividadModal"
+                                            data-id="{{ actividad.id }}"
+                                            data-fecha="{{ actividad.fecha }}"
+                                            data-turno="{{ actividad.turno }}"
+                                            data-hora_inicio="{{ actividad.hora_inicio }}"
+                                            data-hora_final="{{ actividad.hora_final }}"
+                                            data-codigo_actividad="{{ actividad.codigo_actividad }}"
+                                            data-descripcion_actividad="{{ actividad.descripcion_actividad }}"
+                                            data-codigo_equipo="{{ actividad.codigo_equipo }}"
+                                            data-orden_produccion="{{ actividad.orden_produccion }}"
+                                            data-referencia_producto="{{ actividad.referencia_producto }}"
+                                            data-cantidad_trabajada="{{ actividad.cantidad_trabajada }}"
+                                            data-usuario_id="{{ actividad.usuario_id }}"
+                                            data-observaciones="{{ actividad.observaciones }}"
+                                            title="Editar actividad">
+                                        <i class="fas fa-edit me-1"></i> Editar
+                                    </button>
+                                    <form method="POST" action="{{ url_for('admin.eliminar_actividad', id=actividad.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" 
+                                                onclick="return confirm('¿Estás seguro de que deseas eliminar esta actividad?')"
+                                                title="Eliminar actividad">
+                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No se encontraron actividades</h5>
+                                    <p class="text-muted mb-4">Comience creando una nueva actividad</p>
+                                    <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#actividadModal">
+                                        <i class="fas fa-plus me-2"></i> Crear primera actividad
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if actividades %}
+        <div class="card-footer bg-light py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted fw-medium">Mostrando <span class="fw-bold">{{ actividades|length }}</span> registros</span>
+                <span class="text-muted fw-medium">Actualizado: <span id="current-time" class="fw-bold"></span></span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para crear/editar actividad con diseño mejorado -->
+<div class="modal fade" id="actividadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title fw-semibold" id="modalTitle">Nueva Actividad</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="actividadForm" method="POST" action="{{ url_for('admin.crear_actividad') }}" autocomplete="off">
+                <input type="hidden" id="actividadId" name="id">
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_fecha" class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                                <input type="date" class="form-control" id="modal_fecha" name="fecha" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_turno" class="form-label fw-semibold">Turno <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-clock text-muted"></i></span>
+                                <select class="form-select" id="modal_turno" name="turno" required>
+                                    <option value="">Seleccionar turno</option>
+                                    <option value="mañana">Mañana</option>
+                                    <option value="tarde">Tarde</option>
+                                    <option value="noche">Noche</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_hora_inicio" class="form-label fw-semibold">Hora Inicio <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-play text-muted"></i></span>
+                                <input type="time" class="form-control" id="modal_hora_inicio" name="hora_inicio" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_hora_final" class="form-label fw-semibold">Hora Final <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-stop text-muted"></i></span>
+                                <input type="time" class="form-control" id="modal_hora_final" name="hora_final" required autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_codigo_actividad" class="form-label fw-semibold">Código Actividad <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-hashtag text-muted"></i></span>
+                                <input type="text" class="form-control" id="modal_codigo_actividad" name="codigo_actividad" required autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_usuario_id" class="form-label fw-semibold">Operario <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                                <select class="form-select" id="modal_usuario_id" name="usuario_id" required>
+                                    <option value="">Seleccionar operario</option>
+                                    {% for usuario in usuarios if usuario.rol == 'Operario' %}
+                                        <option value="{{ usuario.id }}">{{ usuario.nombre_completo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_descripcion_actividad" class="form-label fw-semibold">Descripción Actividad</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-align-left text-muted"></i></span>
+                            <textarea class="form-control" id="modal_descripcion_actividad" name="descripcion_actividad" rows="2" autocomplete="off"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_codigo_equipo" class="form-label fw-semibold">Código Equipo</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-laptop-code text-muted"></i></span>
+                                <input type="text" class="form-control" id="modal_codigo_equipo" name="codigo_equipo" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_orden_produccion" class="form-label fw-semibold">Orden Producción</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-file-alt text-muted"></i></span>
+                                <input type="text" class="form-control" id="modal_orden_produccion" name="orden_produccion" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_referencia_producto" class="form-label fw-semibold">Referencia Producto</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-barcode text-muted"></i></span>
+                                <input type="text" class="form-control" id="modal_referencia_producto" name="referencia_producto" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal_cantidad_trabajada" class="form-label fw-semibold">Cantidad Trabajada</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent"><i class="fas fa-calculator text-muted"></i></span>
+                                <input type="number" class="form-control" id="modal_cantidad_trabajada" name="cantidad_trabajada" min="0" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_observaciones" class="form-label fw-semibold">Observaciones</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-sticky-note text-muted"></i></span>
+                            <textarea class="form-control" id="modal_observaciones" name="observaciones" rows="3" autocomplete="off"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-save me-2"></i> Guardar Actividad
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Actualizar la hora actual en el footer
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            document.getElementById('current-time').textContent = `${dateString} ${timeString}`;
+        }
+        
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+
+        // Manejar el modal de edición
+        const actividadModal = document.getElementById('actividadModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const actividadForm = document.getElementById('actividadForm');
+        const actividadId = document.getElementById('actividadId');
+        
+        actividadModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            // Resetear el formulario primero
+            actividadForm.reset();
+            
+            if (button.hasAttribute('data-id')) {
+                // Modo edición
+                modalTitle.textContent = 'Editar Actividad';
+                actividadId.value = button.getAttribute('data-id');
+                
+                // Llenar el formulario con los datos existentes
+                document.getElementById('modal_fecha').value = button.getAttribute('data-fecha');
+                document.getElementById('modal_turno').value = button.getAttribute('data-turno');
+                document.getElementById('modal_hora_inicio').value = button.getAttribute('data-hora_inicio');
+                document.getElementById('modal_hora_final').value = button.getAttribute('data-hora_final');
+                document.getElementById('modal_codigo_actividad').value = button.getAttribute('data-codigo_actividad');
+                document.getElementById('modal_descripcion_actividad').value = button.getAttribute('data-descripcion_actividad');
+                document.getElementById('modal_codigo_equipo').value = button.getAttribute('data-codigo_equipo');
+                document.getElementById('modal_orden_produccion').value = button.getAttribute('data-orden_produccion');
+                document.getElementById('modal_referencia_producto').value = button.getAttribute('data-referencia_producto');
+                document.getElementById('modal_cantidad_trabajada').value = button.getAttribute('data-cantidad_trabajada');
+                document.getElementById('modal_observaciones').value = button.getAttribute('data-observaciones');
+                
+                // Seleccionar el usuario correcto en el dropdown
+                const usuarioId = button.getAttribute('data-usuario_id');
+                const usuarioSelect = document.getElementById('modal_usuario_id');
+                
+                // Buscar y seleccionar el usuario de la actividad
+                for (let i = 0; i < usuarioSelect.options.length; i++) {
+                    if (usuarioSelect.options[i].value === usuarioId) {
+                        usuarioSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+                
+                // Cambiar la acción del formulario para editar
+                actividadForm.action = "{{ url_for('admin.editar_actividad', id=0) }}".replace('0', actividadId.value);
+            } else {
+                // Modo creación
+                modalTitle.textContent = 'Nueva Actividad';
+                actividadId.value = '';
+                actividadForm.action = "{{ url_for('admin.crear_actividad') }}";
+                
+                // Establecer fecha actual por defecto
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('modal_fecha').value = today;
+            }
+        });
+
+        // Cerrar modal y resetear al hacer clic en cancelar
+        actividadModal.addEventListener('hidden.bs.modal', function() {
+            actividadForm.reset();
+        });
+    });
+</script>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+    
+    .card {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card {
+        border-left: 4px solid rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        color: #6e707e;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+    
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+    
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d3e2;
+        padding: 0.75rem 1rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .badge {
+        font-size: 0.75em;
+        padding: 0.5em 0.8em;
+    }
+    
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+        border-right: none;
+    }
+    
+    .empty-state {
+        padding: 2rem 0;
+    }
+    
+    .file-upload-container {
+        padding: 1.5rem;
+        border: 2px dashed #e3e6f0;
+        border-radius: 0.75rem;
+        background-color: #f8f9fc;
+    }
+    
+    .upload-info {
+        border-left: 3px solid #4e73df;
+    }
+    
+    .modal-content {
+        border-radius: 1rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        border-radius: 1rem 1rem 0 0;
+        padding: 1.5rem 2rem;
+    }
+    
+    .modal-body {
+        padding: 2rem;
+    }
+    
+    .modal-footer {
+        border-radius: 0 0 1rem 1rem;
+        padding: 1.5rem 2rem;
+    }
+</style>
+{% endblock %}

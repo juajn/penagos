@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Alertas -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show mb-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2 fs-5"></i>
+                        <span class="fw-medium">{{ message }}</span>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="fas fa-users-cog me-2"></i>Gestión de Usuarios</h2>
+        <button class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+            <i class="fas fa-user-plus me-2"></i> Nuevo Usuario
+        </button>
+    </div>
+
+    <!-- Barra de búsqueda mejorada -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.gestion_usuarios') }}" class="mb-0">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control form-control-lg" 
+                           placeholder="Buscar por documento o nombre..." 
+                           value="{{ request.args.get('q', '') }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-filter me-1"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tarjeta de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Total Usuarios</h6>
+                            <h3 class="mb-0 fw-bold">{{ usuarios|length }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-danger text-white shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Administradores</h6>
+                            <h3 class="mb-0 fw-bold">{{ usuarios|selectattr('rol', 'equalto', 'Admin')|list|length }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-shield fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Analistas</h6>
+                            <h3 class="mb-0 fw-bold">{{ usuarios|selectattr('rol', 'equalto', 'Analista')|list|length }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-line fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-secondary text-white shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title text-uppercase fw-semibold opacity-75 mb-1">Operarios</h6>
+                            <h3 class="mb-0 fw-bold">{{ usuarios|selectattr('rol', 'equalto', 'Operario')|list|length }}</h3>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-gear fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios mejorada -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-list me-2 text-primary"></i>Listado de Usuarios</h5>
+            <span class="badge bg-primary rounded-pill">{{ usuarios|length }} registros</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Nombre Completo</th>
+                            <th>Documento</th>
+                            <th>Rol</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-muted">#{{ usuario.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                    <span class="fw-medium">{{ usuario.nombre_completo }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-id-card me-1 text-muted"></i>{{ usuario.documento }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill py-2 px-3 
+                                    {% if usuario.rol == 'Admin' %}bg-danger
+                                    {% elif usuario.rol == 'Analista' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                    <i class="fas 
+                                        {% if usuario.rol == 'Admin' %}fa-user-shield
+                                        {% elif usuario.rol == 'Analista' %}fa-chart-line
+                                        {% else %}fa-user-gear{% endif %} me-1"></i>
+                                    {{ usuario.rol }}
+                                </span>
+                            </td>
+                            <td class="pe-4">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <!-- Botón Editar -->
+                                    <button class="btn btn-sm btn-outline-warning rounded-pill px-3" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalEditarUsuario{{ usuario.id }}"
+                                            title="Editar usuario">
+                                        <i class="fas fa-edit me-1"></i> Editar
+                                    </button>
+
+                                    <!-- Botón Eliminar -->
+                                    <form method="POST" action="{{ url_for('admin.eliminar_usuario', id=usuario.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" 
+                                                onclick="return confirm('¿Está seguro de que desea eliminar este usuario?');"
+                                                title="Eliminar usuario">
+                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No se encontraron usuarios</h5>
+                                    <p class="text-muted mb-4">Comience registrando un nuevo usuario</p>
+                                    <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                                        <i class="fas fa-user-plus me-2"></i> Crear primer usuario
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if usuarios %}
+        <div class="card-footer bg-light py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted fw-medium">Mostrando <span class="fw-bold">{{ usuarios|length }}</span> registros</span>
+                <span class="text-muted fw-medium">Actualizado: <span id="current-time" class="fw-bold"></span></span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario Mejorado -->
+<div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-user-plus me-2"></i>Registrar Nuevo Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.nuevo_usuario') }}" autocomplete="off">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" class="form-control" name="nombre" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Documento <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-id-card text-muted"></i></span>
+                            <input type="text" class="form-control" name="documento" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" class="form-control" name="contraseña" required autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rol <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user-tag text-muted"></i></span>
+                            <select class="form-select" name="rol" required>
+                                <option value="">Seleccione un rol</option>
+                                <option value="Admin">Administrador</option>
+                                <option value="Analista">Analista</option>
+                                <option value="Operario">Operario</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="fas fa-save me-2"></i> Guardar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales Editar Usuario (uno por cada usuario) -->
+{% for usuario in usuarios %}
+<div class="modal fade" id="modalEditarUsuario{{ usuario.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-warning text-white py-3">
+                <h5 class="modal-title fw-semibold"><i class="fas fa-edit me-2"></i>Editar Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.editar_usuario', id=usuario.id) }}" autocomplete="off">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" class="form-control" name="nombre" value="{{ usuario.nombre_completo }}" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Documento <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-id-card text-muted"></i></span>
+                            <input type="text" class="form-control" name="documento" value="{{ usuario.documento }}" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rol <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-user-tag text-muted"></i></span>
+                            <select class="form-select" name="rol" required>
+                                <option value="Admin" {% if usuario.rol == 'Admin' %}selected{% endif %}>Administrador</option>
+                                <option value="Analista" {% if usuario.rol == 'Analista' %}selected{% endif %}>Analista</option>
+                                <option value="Operario" {% if usuario.rol == 'Operario' %}selected{% endif %}>Operario</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Actualizar la hora actual en el footer
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            document.getElementById('current-time').textContent = `${dateString} ${timeString}`;
+        }
+        
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+    });
+</script>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+    
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%) !important;
+    }
+    
+    .card {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .stat-card {
+        border-left: 4px solid rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        color: #6e707e;
+        padding: 1rem 0.75rem;
+    }
+    
+    .table td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+    
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d3e2;
+        padding: 0.75rem 1rem;
+    }
+    
+    .badge {
+        font-size: 0.75em;
+        padding: 0.5em 0.8em;
+    }
+    
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+        border-right: none;
+    }
+    
+    .empty-state {
+        padding: 2rem 0;
+    }
+    
+    .modal-content {
+        border-radius: 1rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        border-radius: 1rem 1rem 0 0;
+        padding: 1.5rem;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        border-radius: 0 0 1rem 1rem;
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}

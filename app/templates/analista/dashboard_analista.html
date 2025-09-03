@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Panel Analista - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header con bienvenida -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="fas fa-chart-line me-2"></i>Panel de Analista
+            </h2>
+            <p class="text-muted mb-0">Bienvenido, <span class="fw-semibold text-dark">{{ current_user.nombre_completo }}</span></p>
+        </div>
+        <a href="{{ url_for('analista.crear_actividad') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i> Nueva Actividad
+        </a>
+    </div>
+
+    <!-- Filtros de Fechas para Gráficas -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-calendar-alt me-2"></i>Filtros de Fechas para Análisis</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('analista.dashboard_analista') }}" id="filtroGraficas">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold text-dark">Fecha desde</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar-start text-muted"></i></span>
+                            <input type="date" class="form-control" name="fecha_inicio_grafica" 
+                                   value="{{ request.args.get('fecha_inicio_grafica', fecha_inicio_default) }}" 
+                                   max="{{ fecha_fin_default }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold text-dark">Fecha hasta</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar-end text-muted"></i></span>
+                            <input type="date" class="form-control" name="fecha_fin_grafica" 
+                                   value="{{ request.args.get('fecha_fin_grafica', fecha_fin_default) }}"
+                                   min="{{ fecha_inicio_default }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold text-dark">Agrupación</label>
+                        <select class="form-select" name="agrupacion">
+                            <option value="dia" {% if request.args.get('agrupacion') == 'dia' %}selected{% endif %}>Por día</option>
+                            <option value="semana" {% if request.args.get('agrupacion') == 'semana' %}selected{% endif %}>Por semana</option>
+                            <option value="mes" {% if request.args.get('agrupacion') == 'mes' %}selected{% endif %}>Por mes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-chart-bar me-1"></i> Actualizar Gráficas
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetFiltrosGraficas()">
+                                <i class="fas fa-sync me-1"></i> Reiniciar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Gráficas Analíticas -->
+    <div class="row mb-4">
+        <!-- Gráfica 1: Actividades por Fecha -->
+        <div class="col-xl-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>Evolución de Actividades
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="graficaActividades"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica 2: Distribución por Turnos -->
+        <div class="col-xl-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-clock me-2"></i>Distribución por Turnos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="graficaTurnos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica 3: Top Operarios -->
+        <div class="col-xl-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-user-tie me-2"></i>Top 5 Operarios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="graficaOperarios"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica 4: Producción Acumulada -->
+        <div class="col-xl-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-boxes me-2"></i>Producción Acumulada
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="graficaProduccion"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de Búsqueda para Tabla -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-light py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Búsqueda</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('analista.dashboard_analista') }}">
+                <input type="hidden" name="fecha_inicio_grafica" value="{{ request.args.get('fecha_inicio_grafica', '') }}">
+                <input type="hidden" name="fecha_fin_grafica" value="{{ request.args.get('fecha_fin_grafica', '') }}">
+                <input type="hidden" name="agrupacion" value="{{ request.args.get('agrupacion', '') }}">
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Buscar por nombre o documento</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control" name="busqueda" 
+                                   placeholder="Nombre o documento del operario" 
+                                   value="{{ request.args.get('busqueda', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Fecha desde</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                            <input type="date" class="form-control" name="fecha_inicio" 
+                                   value="{{ request.args.get('fecha_inicio', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Fecha hasta</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-calendar text-muted"></i></span>
+                            <input type="date" class="form-control" name="fecha_fin" 
+                                   value="{{ request.args.get('fecha_fin', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="d-grid gap-2 w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i> Filtrar
+                            </button>
+                            <a href="{{ url_for('analista.dashboard_analista') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-eraser me-1"></i> Limpiar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumen de Filtros Aplicados -->
+    {% if request.args.get('busqueda') or request.args.get('fecha_inicio') or request.args.get('fecha_fin') %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+                <strong>Filtros aplicados:</strong>
+                {% if request.args.get('busqueda') %}
+                <span class="badge bg-primary ms-2">Búsqueda: "{{ request.args.get('busqueda') }}"</span>
+                {% endif %}
+                {% if request.args.get('fecha_inicio') %}
+                <span class="badge bg-secondary ms-2">Desde: {{ request.args.get('fecha_inicio') }}</span>
+                {% endif %}
+                {% if request.args.get('fecha_fin') %}
+                <span class="badge bg-secondary ms-2">Hasta: {{ request.args.get('fecha_fin') }}</span>
+                {% endif %}
+                <span class="badge bg-success ms-2">Resultados: {{ actividades|length }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Actividades -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-semibold"><i class="fas fa-list-check me-2 text-primary"></i>Registro de Actividades</h5>
+            <span class="badge bg-primary rounded-pill">{{ actividades|length }} registros</span>
+        </div>
+        <div class="card-body p-0">
+            {% if actividades %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">#</th>
+                            <th>Descripción</th>
+                            <th>Fecha</th>
+                            <th>Turno</th>
+                            <th>Operario</th>
+                            <th>Cantidad</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for actividad in actividades %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-muted">{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-tasks text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium text-dark">{{ actividad.codigo_actividad }}</div>
+                                        <small class="text-muted">{{ actividad.descripcion_actividad|default('Sin descripción', true)|truncate(40) }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-medium">{{ actividad.fecha.strftime('%d/%m/%Y') }}</span>
+                                <br>
+                                <small class="text-muted">{{ actividad.hora_inicio }} - {{ actividad.hora_final }}</small>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill bg-{{ 'success' if actividad.turno == 'Mañana' else 'warning' if actividad.turno == 'Tarde' else 'info' }}">
+                                    {{ actividad.turno }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">{{ actividad.usuario.nombre_completo }}</div>
+                                        <small class="text-muted">{{ actividad.usuario.documento }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-success rounded-pill px-3 py-2">
+                                    <i class="fas fa-cube me-1"></i>{{ actividad.cantidad_trabajada }}
+                                </span>
+                            </td>
+                            <td class="pe-4">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{{ url_for('analista.editar_actividad', id=actividad.id) }}" 
+                                       class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                       title="Editar actividad">
+                                        <i class="fas fa-edit me-1"></i> Editar
+                                    </a>
+                                    <form method="POST" action="{{ url_for('analista.eliminar_actividad', id=actividad.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" 
+                                                onclick="return confirm('¿Estás seguro de eliminar esta actividad?')"
+                                                title="Eliminar actividad">
+                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No se encontraron actividades</h5>
+                <p class="text-muted mb-4">No hay actividades que coincidan con los criterios de búsqueda</p>
+                <a href="{{ url_for('analista.crear_actividad') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> Crear primera actividad
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% if actividades %}
+        <div class="card-footer bg-light py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted fw-medium">Mostrando <span class="fw-bold">{{ actividades|length }}</span> registros</span>
+                <span class="text-muted fw-medium">Período analizado: {{ fecha_inicio_default }} al {{ fecha_fin_default }}</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Datos para las gráficas (estos vendrían de tu backend)
+    const datosGraficas = {
+        actividades: {
+            labels: {{ datos_graficas.fechas|tojson }},
+            datasets: [{
+                label: 'Número de Actividades',
+                data: {{ datos_graficas.cantidades|tojson }},
+                borderColor: 'rgba(78, 115, 223, 1)',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        turnos: {
+            labels: ['Mañana', 'Tarde', 'Noche'],
+            datasets: [{
+                data: {{ datos_graficas.turnos|tojson }},
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(23, 162, 184, 0.8)'
+                ]
+            }]
+        },
+        operarios: {
+            labels: {{ datos_graficas.top_operarios_nombres|tojson }},
+            datasets: [{
+                label: 'Actividades Realizadas',
+                data: {{ datos_graficas.top_operarios_cantidades|tojson }},
+                backgroundColor: 'rgba(78, 115, 223, 0.8)'
+            }]
+        },
+        produccion: {
+            labels: {{ datos_graficas.fechas|tojson }},
+            datasets: [{
+                label: 'Producción Acumulada',
+                data: {{ datos_graficas.produccion_acumulada|tojson }},
+                borderColor: 'rgba(40, 167, 69, 1)',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true  
+            }]
+        }
+    };
+
+    // Inicializar gráficas
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gráfica de Actividades
+        new Chart(document.getElementById('graficaActividades'), {
+            type: 'line',
+            data: datosGraficas.actividades,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Evolución de actividades en el tiempo'
+                    }
+                }
+            }
+        });
+
+        // Gráfica de Turnos
+        new Chart(document.getElementById('graficaTurnos'), {
+            type: 'doughnut',
+            data: datosGraficas.turnos,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Gráfica de Operarios
+        new Chart(document.getElementById('graficaOperarios'), {
+            type: 'bar',
+            data: datosGraficas.operarios,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Top 5 operarios por actividades'
+                    }
+                }
+            }
+        });
+
+        // Gráfica de Producción
+        new Chart(document.getElementById('graficaProduccion'), {
+            type: 'line',
+            data: datosGraficas.produccion,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Producción acumulada'
+                    }
+                }
+            }
+        });
+    });
+
+    // Función para resetear filtros de gráficas
+    function resetFiltrosGraficas() {
+        document.querySelector('input[name="fecha_inicio_grafica"]').value = '{{ fecha_inicio_default }}';
+        document.querySelector('input[name="fecha_fin_grafica"]').value = '{{ fecha_fin_default }}';
+        document.querySelector('select[name="agrupacion"]').value = 'dia';
+        document.getElementById('filtroGraficas').submit();
+    }
+
+    // Validación de fechas
+    const fechaInicio = document.querySelector('input[name="fecha_inicio_grafica"]');
+    const fechaFin = document.querySelector('input[name="fecha_fin_grafica"]');
+
+    if (fechaInicio && fechaFin) {
+        fechaInicio.addEventListener('change', function() {
+            fechaFin.min = this.value;
+        });
+
+        fechaFin.addEventListener('change', function() {
+            fechaInicio.max = this.value;
+        });
+    }
+</script>
+
+<style>
+    .card {
+        border-radius: 0.75rem;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        color: #6e707e;
+    }
+    
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+    
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+        border-right: none;
+    }
+</style>
+{% endblock %}

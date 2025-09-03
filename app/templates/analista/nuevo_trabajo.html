@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Actividad - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <!-- Tarjeta Principal -->
+            <div class="card shadow-lg border-0">
+                <!-- Header con gradiente -->
+                <div class="card-header bg-gradient-success text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-plus-circle fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h3 class="mb-1 fw-bold">Registrar Nueva Actividad</h3>
+                            <p class="mb-0 opacity-75">Complete todos los campos requeridos para registrar una nueva actividad</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-5">
+                    <!-- Formulario -->
+                    <form method="POST" class="needs-validation" novalidate>
+                        <!-- Sección: Información del Operario -->
+                        <div class="mb-4">
+                            <h5 class="text-success mb-3 border-bottom pb-2">
+                                <i class="fas fa-user me-2"></i>Información del Operario
+                            </h5>
+                            <div class="mb-3">
+                                <label for="usuario_id" class="form-label fw-semibold">Operario <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="fas fa-user text-muted"></i>
+                                    </span>
+                                    <select name="usuario_id" class="form-select" required>
+                                        <option value="">Seleccione un operario</option>
+                                        {% for usuario in usuarios if usuario.rol == 'Operario' %}
+                                            <option value="{{ usuario.id }}">{{ usuario.nombre_completo }} - {{ usuario.documento }}</option>
+                                        {% else %}
+                                            <option value="" disabled>No hay operarios disponibles</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor seleccione un operario
+                                </div>
+                                {% if not usuarios|selectattr('rol', 'equalto', 'Operario')|list %}
+                                <div class="alert alert-warning mt-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    No hay operarios registrados en el sistema. Contacte al administrador.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Sección: Fecha y Turno -->
+                        <div class="mb-4">
+                            <h5 class="text-success mb-3 border-bottom pb-2">
+                                <i class="fas fa-calendar me-2"></i>Programación
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha" class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-calendar-day text-muted"></i>
+                                        </span>
+                                        <input type="date" name="fecha" class="form-control" required 
+                                               value="{{ now.strftime('%Y-%m-%d') if now }}">
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese la fecha
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="turno" class="form-label fw-semibold">Turno <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-clock text-muted"></i>
+                                        </span>
+                                        <select name="turno" class="form-select" required>
+                                            <option value="">Seleccione el turno</option>
+                                            <option value="Mañana">Mañana</option>
+                                            <option value="Tarde">Tarde</option>
+                                            <option value="Noche">Noche</option>
+                                        </select>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor seleccione el turno
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_inicio" class="form-label fw-semibold">Hora de inicio <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-play text-muted"></i>
+                                        </span>
+                                        <input type="time" name="hora_inicio" class="form-control" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese la hora de inicio
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_final" class="form-label fw-semibold">Hora de finalización <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-stop text-muted"></i>
+                                        </span>
+                                        <input type="time" name="hora_final" class="form-control" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese la hora de finalización
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Detalles de la Actividad -->
+                        <div class="mb-4">
+                            <h5 class="text-success mb-3 border-bottom pb-2">
+                                <i class="fas fa-tasks me-2"></i>Detalles de la Actividad
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="codigo_equipo" class="form-label fw-semibold">Código de equipo <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-laptop-code text-muted"></i>
+                                        </span>
+                                        <input type="text" name="codigo_equipo" class="form-control" 
+                                               placeholder="Ej: EQ-001" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese el código del equipo
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="codigo_actividad" class="form-label fw-semibold">Código de actividad <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-hashtag text-muted"></i>
+                                        </span>
+                                        <input type="text" name="codigo_actividad" class="form-control" 
+                                               placeholder="Ej: ACT-001" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Por favor ingrese el código de actividad
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="orden_produccion" class="form-label fw-semibold">Orden de producción</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-file-alt text-muted"></i>
+                                        </span>
+                                        <input type="text" name="orden_produccion" class="form-control" 
+                                               placeholder="Número de orden">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="referencia_producto" class="form-label fw-semibold">Referencia del producto</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent">
+                                            <i class="fas fa-barcode text-muted"></i>
+                                        </span>
+                                        <input type="text" name="referencia_producto" class="form-control" 
+                                               placeholder="Referencia del producto">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion_actividad" class="form-label fw-semibold">Descripción de la actividad <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="fas fa-align-left text-muted"></i>
+                                    </span>
+                                    <textarea name="descripcion_actividad" class="form-control" rows="3" 
+                                              placeholder="Describa la actividad realizada..." required></textarea>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor ingrese la descripción de la actividad
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="cantidad_trabajada" class="form-label fw-semibold">Cantidad trabajada <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="fas fa-calculator text-muted"></i>
+                                    </span>
+                                    <input type="number" name="cantidad_trabajada" class="form-control" 
+                                           min="1" step="1" placeholder="0" required>
+                                    <span class="input-group-text">unidades</span>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor ingrese la cantidad trabajada
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label fw-semibold">Observaciones</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="fas fa-sticky-note text-muted"></i>
+                                    </span>
+                                    <textarea name="observaciones" class="form-control" rows="2" 
+                                              placeholder="Observaciones adicionales..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-between pt-4 border-top">
+                            <a href="{{ url_for('analista.dashboard_analista') }}" class="btn btn-secondary rounded-pill px-4">
+                                <i class="fas fa-arrow-left me-2"></i> Volver al Panel
+                            </a>
+                            <button type="submit" class="btn btn-success rounded-pill px-4" 
+                                    {% if not usuarios|selectattr('rol', 'equalto', 'Operario')|list %}disabled{% endif %}>
+                                <i class="fas fa-save me-2"></i> Guardar Actividad
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="text-center mt-4">
+                <p class="text-muted small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Todos los campos marcados con <span class="text-danger">*</span> son obligatorios
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Validación de formulario
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+
+        // Establecer hora actual por defecto
+        const now = new Date();
+        const timeString = now.toTimeString().substring(0, 5);
+        
+        // Establecer hora de inicio y fin por defecto
+        const horaInicio = document.querySelector('input[name="hora_inicio"]');
+        const horaFinal = document.querySelector('input[name="hora_final"]');
+        
+        if (horaInicio && !horaInicio.value) {
+            horaInicio.value = '08:00';
+        }
+        if (horaFinal && !horaFinal.value) {
+            // 2 horas después de la hora de inicio
+            const [hours, minutes] = horaInicio.value.split(':');
+            const endTime = new Date();
+            endTime.setHours(parseInt(hours) + 2, parseInt(minutes));
+            horaFinal.value = endTime.toTimeString().substring(0, 5);
+        }
+
+        // Validación de horas (hora final debe ser mayor que hora inicial)
+        horaInicio.addEventListener('change', validateTime);
+        horaFinal.addEventListener('change', validateTime);
+
+        function validateTime() {
+            if (horaInicio.value && horaFinal.value) {
+                if (horaFinal.value <= horaInicio.value) {
+                    horaFinal.setCustomValidity('La hora final debe ser mayor que la hora de inicio');
+                } else {
+                    horaFinal.setCustomValidity('');
+                }
+            }
+        }
+
+        // Deshabilitar envío del formulario si no hay operarios
+        const operariosDisponibles = {{ usuarios|selectattr('rol', 'equalto', 'Operario')|list|length }};
+        if (operariosDisponibles === 0) {
+            const submitButton = document.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.title = "No hay operarios disponibles para asignar la actividad";
+            }
+        }
+    });
+</script>
+
+<style>
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important;
+    }
+    
+    .card {
+        border-radius: 1rem;
+        border: none;
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        border-radius: 1rem 1rem 0 0 !important;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d3e2;
+        padding: 0.75rem 1rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #1cc88a;
+        box-shadow: 0 0 0 0.2rem rgba(28, 200, 138, 0.25);
+    }
+    
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+        background-color: #f8f9fc;
+        border: 1px solid #d1d3e2;
+        border-right: none;
+    }
+    
+    .btn {
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+        border: none;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+        background: linear-gradient(135deg, #17a673 0%, #0f6e4a 100%);
+        transform: translateY(-1px);
+    }
+    
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .border-success {
+        border-color: #1cc88a !important;
+    }
+    
+    .text-success {
+        color: #1cc88a !important;
+    }
+    
+    .was-validated .form-control:invalid,
+    .was-validated .form-select:invalid {
+        border-color: #e74a3b;
+    }
+    
+    .was-validated .form-control:valid,
+    .was-validated .form-select:valid {
+        border-color: #1cc88a;
+    }
+    
+    .alert-warning {
+        border-radius: 0.5rem;
+        border-left: 4px solid #f6c23e;
+    }
+    
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 2rem !important;
+        }
+    }
+</style>
+{% endblock %}
